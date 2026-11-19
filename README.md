@@ -55,10 +55,16 @@ For Claude Desktop, add an entry under `mcpServers` in `claude_desktop_config.js
 pytest -rs
 ```
 
-42 tests. `tests/test_vault.py` has 32: 6 for normal use, 18 path refusals, 6 symlink and
+43 tests. `tests/test_vault.py` has 33: 6 for normal use, 19 path refusals, 6 symlink and
 junction cases, 2 write checks. `tests/test_server.py` has 10 end-to-end cases through a real
 MCP client connected in-process. On the development machine (Windows 11, Python 3.13, `mcp` 2.3.0) the
-result was **39 passed, 3 skipped**. The 3 skipped tests create real symlinks, which Windows
+result was **40 passed, 3 skipped**.
+
+`python verify.py` runs everything in about 6 seconds: a compile check, the tests, then a real
+run that starts the server as a subprocess over stdio on the toy vault and compares its
+`broken_links` output with the known-good copy in `verify-features/expected_broken_links.json`.
+It ends with `verify: PASS` or `verify: FAIL at <step>: <reason>`. `verify-features/` describes
+what each check covers. The 3 skipped tests create real symlinks, which Windows
 allows only with admin rights or Developer Mode. Their logic is still covered on Windows by a
 junction test and a test that fakes a symlink on one path part; the GitHub Actions workflow runs
 the full set on Ubuntu and Windows.
@@ -95,6 +101,10 @@ The planted broken links are listed in `tests/test_vault.py` (`PLANTED`), and a 
   backlinks tool, so a page that mentions the name without linking would be counted too.
 - First attempt at the source check banned the word `symlink` and failed on the server's own
   docstring; it now bans `os.symlink` only.
+- Deleting the `..` rule on purpose did not make any test fail, because the second check
+  (resolve the path, then confirm it is inside the vault) still blocked every escape. Good for
+  safety, but the `..` rule itself was untested. A test now asks for `lca/../index.md`, which
+  stays inside the vault and must still be refused.
 
 ## Limits
 

@@ -101,6 +101,11 @@ def test_refuses_escaping_paths(vault, bad):
         vault.read_page(bad)
 
 
+def test_refuses_dotdot_even_when_it_stays_inside(vault):
+    with pytest.raises(VaultError, match=r"'\.\.'"):
+        vault.read_page("lca/../index.md")
+
+
 def test_refuses_absolute_path_even_inside_vault(vault, vault_dir):
     with pytest.raises(VaultError, match="absolute"):
         vault.read_page(str(vault_dir / "index.md"))

@@ -1,0 +1,37 @@
+[
+ {
+  "source": "energy/District Heating.md",
+  "line": 12,
+  "target": "Heat Pump"
+ },
+ {
+  "source": "energy/Energy Storage.md",
+  "line": 9,
+  "target": "Battery Chemistry"
+ },
+ {
+  "source": "energy/Wind Power.md",
+  "line": 13,
+  "target": "Offshore Wind"
+ },
+ {
+  "source": "lca/Allocation.md",
+  "line": 15,
+  "target": "Consequential LCA"
+ },
+ {
+  "source": "lca/Impact Assessment.md",
+  "line": 17,
+  "target": "Endpoint Indicators"
+ },
+ {
+  "source": "lca/System Boundary.md",
+  "line": 12,
+  "target": "Cutoff Rules"
+ },
+ {
+  "source": "ptx/Power-to-X.md",
+  "line": 15,
+  "target": "Carbon Capture and Storage"
+ }
+]
