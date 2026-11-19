@@ -36,7 +36,7 @@ flowchart LR
 
 | Box | `file:line` of the main function | What it does |
 |---|---|---|
-| Client config | `README.md:85` (the `claude mcp add` line) | Says which command starts the server and which folder to serve. |
+| Client config | `docs/details.md:10` (the `claude mcp add` line) | Says which command starts the server and which folder to serve. |
 | Claude Code / Claude Desktop | outside the repository | Starts the server, sends tool calls over stdio. |
 | `server.py` | `src/vault_mcp/server.py:31` (`build_server`) | Registers the four read-only tools, turns `VaultError` into `ToolError`. Entry: `main` at `server.py:91`, which exits with one line if the vault folder is missing. |
 | `vault.py` | `src/vault_mcp/vault.py:49` (`Vault.resolve`) | All file access: path to file or refusal, listing, search, broken links. |
