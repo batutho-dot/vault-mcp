@@ -29,6 +29,45 @@ or touch, so this server:
 | `search(query, limit=10)` | Pages containing every word of the query, ranked by hits, with up to 3 matching lines each |
 | `broken_links()` | Each `[[link]]` whose target page does not exist: page, line, target. Links in code are ignored; `[[Page\|alias]]` and `[[Page#Heading]]` are handled |
 
+## How it is built
+
+Two files do the work. `server.py` registers the four tools and turns refusals into MCP errors;
+`vault.py` is the only code that touches the file system, and every `read_page` path goes
+through `Vault.resolve`, which refuses the request at the first failed check:
+
+```mermaid
+flowchart TD
+    A["Client calls read_page with a path<br/>MCP tool call, stdio"] --> B["server.py read_page<br/>guarded wrapper"]
+    B --> C{"Empty, blank or<br/>not text?"}
+    C -->|yes| R
+    C -->|no| D{"Null byte<br/>in the path?"}
+    D -->|yes| R
+    D -->|no| E{"Absolute path?<br/>drive letter, UNC, leading slash or ~"}
+    E -->|yes| R
+    E -->|no| F{"Any '..' part?"}
+    F -->|yes| R
+    F -->|no| G{"Any part on the way<br/>a symlink or junction?"}
+    G -->|yes| R
+    G -->|no| H{"Does the file exist<br/>after resolving it?"}
+    H -->|no| R
+    H -->|yes| I{"Real path inside<br/>the vault root?"}
+    I -->|no| R
+    I -->|yes| J{"A file with<br/>a .md suffix?"}
+    J -->|no| R
+    J -->|yes| K["_text opens the file read-only<br/>first 200,000 bytes"]
+    K --> L["Client gets the page text"]
+    R["VaultError raised<br/>message safe to show"] --> S["guarded logs 'refused'<br/>raises ToolError"]
+    S --> T["Client gets an error result<br/>nothing was read"]
+
+    classDef ok fill:#d8f0d8,stroke:#2a6a2a,color:#000
+    classDef no fill:#f6d8d8,stroke:#8a2a2a,color:#000
+    class K,L ok
+    class R,S,T no
+```
+
+The structure diagram, the `file:line` table and the checks not drawn here (listing, search,
+vault root) are in [docs/architecture.md](docs/architecture.md).
+
 ## Run
 
 Python 3.11 or newer.
