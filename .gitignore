@@ -5,3 +5,7 @@ __pycache__/
 eval/run*.json
 eval/run*.err
 eval/mcp.json
+
+# Secrets
+.env*
+*.key
