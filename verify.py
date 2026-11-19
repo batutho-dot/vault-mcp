@@ -1,6 +1,7 @@
 """Check this repository end to end. Prints `verify: PASS` or `verify: FAIL at <step>: <reason>`.
 
-Steps: compile, tests, then a real run of the server over stdio on the toy vault.
+Steps: compile, tests, a real run of the server over stdio on the toy vault, then a wheel
+build that must carry the toy vault (needs pip to fetch hatchling once, so network on a cold cache).
 Usage: python verify.py   (uses .venv's Python if present). Changes nothing in the repo.
 """
 
@@ -12,6 +13,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -76,7 +78,24 @@ def step_real_run():
     return f"stdio server: 21 pages, search ok, broken links {len(links)}/{len(expected)} match, '..' refused"
 
 
-STEPS = [("compile", step_compile), ("tests", step_tests), ("real-run", step_real_run)]
+def step_wheel():
+    """The built wheel carries the toy vault, so `pip install .` and `uvx` serve it without --vault."""
+    with tempfile.TemporaryDirectory() as out:
+        r = subprocess.run(
+            [PY, "-m", "pip", "wheel", str(ROOT), "--no-deps", "-q", "-w", out],
+            cwd=out, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}, capture_output=True, text=True,
+        )
+        if r.returncode != 0:
+            raise Fail("pip wheel failed: " + (r.stderr.strip().splitlines() or ["no output"])[-1])
+        (wheel,) = Path(out).glob("vault_mcp-*.whl")
+        with zipfile.ZipFile(wheel) as z:
+            pages = [n for n in z.namelist() if n.startswith("vault_mcp/toy-vault/") and n.endswith(".md")]
+    if len(pages) != 21:
+        raise Fail(f"wheel holds {len(pages)} toy-vault pages, expected 21")
+    return f"{wheel.name} holds the 21 toy-vault pages"
+
+
+STEPS = [("compile", step_compile), ("tests", step_tests), ("real-run", step_real_run), ("wheel", step_wheel)]
 
 
 def main() -> int:

@@ -225,3 +225,13 @@ def test_source_has_no_write_calls():
             assert word not in text, f"{path.name} contains {word}"
         for call in re.findall(r"\bopen\([^)]*\)", text):
             assert '"r"' in call, f"{path.name}: {call} is not read-only"
+
+
+def test_list_unknown_folder_is_refused(vault):
+    with pytest.raises(VaultError, match="no such folder"):
+        vault.list_pages("nope")
+
+
+def test_list_folder_that_is_a_file_is_refused(vault):
+    with pytest.raises(VaultError, match="no such folder"):
+        vault.list_pages("index.md")

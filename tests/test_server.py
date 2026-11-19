@@ -62,3 +62,32 @@ async def test_read_and_broken_links_work(server):
         links = await client.call_tool("broken_links", {})
     assert not page.is_error and "Alkaline" in page.content[0].text
     assert len(links.structured_content["result"]) == 7
+
+
+async def test_list_pages_unknown_folder_is_a_tool_error(server):
+    async with Client(server) as client:
+        result = await client.call_tool("list_pages", {"folder": "no-such-folder"})
+    assert result.is_error
+    assert "no such folder" in result.content[0].text
+
+
+async def test_search_empty_query_is_a_tool_error(server):
+    async with Client(server) as client:
+        result = await client.call_tool("search", {"query": "   "})
+    assert result.is_error
+    assert "query is empty" in result.content[0].text
+
+
+def test_missing_vault_exits_with_a_message(tmp_path, capsys):
+    from vault_mcp.server import main
+
+    with pytest.raises(SystemExit) as exit_info:
+        main(["--vault", str(tmp_path / "missing")])
+    assert exit_info.value.code == 2
+    assert "vault root is not a folder" in capsys.readouterr().err
+
+
+def test_default_vault_is_the_toy_vault():
+    from vault_mcp.server import DEFAULT_VAULT
+
+    assert DEFAULT_VAULT.is_dir() and (DEFAULT_VAULT / "index.md").is_file()

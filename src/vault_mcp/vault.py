@@ -104,8 +104,11 @@ class Vault:
         pages = []
         prefix = folder.strip("/\\").replace("\\", "/")
         if prefix:
-            if ".." in PurePosixPath(prefix).parts or PureWindowsPath(folder).drive:
+            if ".." in PurePosixPath(prefix).parts or PureWindowsPath(folder).drive or "\x00" in prefix:
                 raise VaultError("folder must be a plain subfolder of the vault")
+            sub = self.root / prefix
+            if not sub.is_dir() or _is_link(sub):
+                raise VaultError(f"no such folder in the vault: {prefix}")
         for p in self._walk():
             rel = self.rel(p)
             if prefix and not rel.startswith(prefix + "/"):

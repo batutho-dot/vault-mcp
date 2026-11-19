@@ -1,5 +1,7 @@
 # vault-mcp
 
+[![tests](https://github.com/batutho-dot/vault-mcp/actions/workflows/tests.yml/badge.svg)](https://github.com/batutho-dot/vault-mcp/actions/workflows/tests.yml)
+
 A small, read-only [MCP](https://modelcontextprotocol.io) server that lets an AI assistant
 (Claude Code, Claude Desktop or any MCP client) search and read a folder of Markdown notes,
 such as an Obsidian vault, and list its broken `[[wikilinks]]`. It cannot change, create or
@@ -77,7 +79,10 @@ pip install -e ".[test]"
 vault-mcp --vault path/to/your/notes
 ```
 
-Without `--vault` (or `$VAULT_ROOT`) it serves the bundled `toy-vault/`.
+Without `--vault` (or `$VAULT_ROOT`) it serves the bundled `toy-vault/`. The toy vault is
+packed into the wheel too, so a plain `pip install .` or, with
+[uv](https://docs.astral.sh/uv/), `uvx --from . vault-mcp` from a clone also serves it. A
+`--vault` folder that does not exist stops the server at once with a one-line message.
 
 Add it to Claude Code (run from the repository folder):
 
@@ -88,25 +93,49 @@ claude mcp add vault -- vault-mcp --vault ./toy-vault
 For Claude Desktop, add an entry under `mcpServers` in `claude_desktop_config.json` with
 `"command": "vault-mcp"` and `"args": ["--vault", "/absolute/path/to/notes"]`.
 
+## Example
+
+Asked "what is the COP of a heat pump?", the model calls `search(query="coefficient performance")`
+and gets:
+
+```json
+[
+  {
+    "path": "energy/Heat Pumps.md",
+    "title": "Heat Pumps",
+    "score": 2,
+    "matches": [
+      {"line": 11, "text": "Its efficiency is the coefficient of performance (COP): heat delivered divided by electricity"}
+    ]
+  }
+]
+```
+
+It then calls `read_page(path="energy/Heat Pumps.md")` for the full note. A request such as
+`read_page(path="../README.md")` comes back as a tool error:
+`'..' is refused; paths must stay inside the vault`.
+
 ## Tests
 
 ```bash
 pytest -rs
 ```
 
-43 tests. `tests/test_vault.py` has 33: 6 for normal use, 19 path refusals, 6 symlink and
-junction cases, 2 write checks. `tests/test_server.py` has 10 end-to-end cases through a real
-MCP client connected in-process. On the development machine (Windows 11, Python 3.13, `mcp` 2.3.0) the
-result was **40 passed, 3 skipped**.
+49 tests. `tests/test_vault.py` has 35: 6 for normal use, 21 refusals (paths and folders),
+6 symlink and junction cases, 2 write checks. `tests/test_server.py` has 14 end-to-end cases
+through a real MCP client connected in-process, plus start-up checks (missing vault folder,
+default toy vault). On the development machine (Windows 11, Python 3.13, `mcp` 2.3.0) the
+result was **46 passed, 3 skipped**.
 
 `python verify.py` runs everything in about 6 seconds: a compile check, the tests, then a real
 run that starts the server as a subprocess over stdio on the toy vault and compares its
-`broken_links` output with the known-good copy in `verify-features/expected_broken_links.json`.
+`broken_links` output with the known-good copy in `verify-features/expected_broken_links.json`,
+and finally builds the wheel and checks it carries the 21 toy-vault pages.
 It ends with `verify: PASS` or `verify: FAIL at <step>: <reason>`. `verify-features/` describes
 what each check covers. The 3 skipped tests create real symlinks, which Windows
 allows only with admin rights or Developer Mode. Their logic is still covered on Windows by a
 junction test and a test that fakes a symlink on one path part; the GitHub Actions workflow runs
-the full set on Ubuntu and Windows.
+the tests and `verify.py` on every push, on Ubuntu (Python 3.11 and 3.13) and Windows (3.13).
 
 The write checks are: the tool list is exactly the four read tools, all marked read-only; calls
 to `write_page`, `delete_page`, `create_page` and `edit_page` fail; every file in the vault has

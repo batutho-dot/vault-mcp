@@ -23,7 +23,9 @@ log = logging.getLogger("vault_mcp")
 READ_ONLY = ToolAnnotations(
     read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
 )
-DEFAULT_VAULT = Path(__file__).resolve().parents[2] / "toy-vault"
+_PACKAGED_TOY = Path(__file__).resolve().parent / "toy-vault"  # inside an installed wheel
+_SOURCE_TOY = Path(__file__).resolve().parents[2] / "toy-vault"  # in a clone or editable install
+DEFAULT_VAULT = _SOURCE_TOY if _SOURCE_TOY.is_dir() else _PACKAGED_TOY
 
 
 def build_server(vault_root: str | os.PathLike[str]) -> MCPServer:
@@ -95,8 +97,12 @@ def main(argv: list[str] | None = None) -> None:
     )
     args = parser.parse_args(argv)
     logging.basicConfig(stream=sys.stderr, level=logging.INFO)
+    try:
+        server = build_server(args.vault)
+    except VaultError as exc:
+        parser.exit(2, f"vault-mcp: {exc}\n")
     log.info("serving vault %s", Path(args.vault).resolve())
-    build_server(args.vault).run(transport="stdio")
+    server.run(transport="stdio")
 
 
 if __name__ == "__main__":
