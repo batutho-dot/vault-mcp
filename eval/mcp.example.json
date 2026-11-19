@@ -1,0 +1,1 @@
+{"mcpServers": {"vault": {"command": "vault-mcp", "args": ["--vault", "toy-vault"]}}}
